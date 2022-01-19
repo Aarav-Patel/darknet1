@@ -107,17 +107,17 @@ def load_network(config_file, data_file, weights, batch_size=1):
 
 
 # recode to print center into formatted .csv file
-def print_detections_into_csv(detections, file, frame_count, coordinates=False):
-    print("\nObjects:")
-    f = open(file, 'w', newline='')
-    writer_obj = csv.writer(f)
-    for label, confidence, bbox in detections:
-        x, y, w, h = bbox
-        if coordinates:
-            # print("{}: {}%    (left_x: {:.0f}   top_y:  {:.0f}   width:   {:.0f}   height:  {:.0f})".format(label, confidence, x, y, w, h))
-            writer_obj.writerow([x,y,frame_count])
-        else:
-            print("{}: {}%".format(label, confidence))
+# def print_detections_into_csv(detections, file, frame_count, coordinates=False):
+#     print("\nObjects:")
+#     f = open(file, 'w', newline='')
+#     writer_obj = csv.writer(f)
+#     for label, confidence, bbox in detections:
+#         x, y, w, h = bbox
+#         if coordinates:
+#             # print("{}: {}%    (left_x: {:.0f}   top_y:  {:.0f}   width:   {:.0f}   height:  {:.0f})".format(label, confidence, x, y, w, h))
+#             writer_obj.writerow([x,y,frame_count])
+#         else:
+#             print("{}: {}%".format(label, confidence))
 
 
 
