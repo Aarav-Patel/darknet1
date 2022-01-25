@@ -8,6 +8,7 @@ import darknet
 import tagpath
 import visualizepath
 import numpy as np
+import asyncio
 import argparse
 from threading import Thread, enumerate
 from queue import Queue
@@ -116,40 +117,41 @@ def video_capture(frame_queue, darknet_image_queue):
             break
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         frame_resized = cv2.resize(frame_rgb, (darknet_width, darknet_height),
-                                   interpolation=cv2.INTER_LINEAR)
+                                interpolation=cv2.INTER_LINEAR)
         frame_queue.put(frame)
         img_for_detect = darknet.make_image(darknet_width, darknet_height, 3)
         darknet.copy_image_from_bytes(img_for_detect, frame_resized.tobytes())
         darknet_image_queue.put(img_for_detect)
     cap.release()
 
-file = "./result.csv"
-f = open(file, 'w', newline='')
-# csv_writer = csv.writer(f)
+
 def inference(darknet_image_queue, detections_queue, fps_queue):
-    frame_counter = 0
-    output_detections = []
     while cap.isOpened():
         darknet_image = darknet_image_queue.get()
-        # height, width, channels = darknet_image.size
-        frame_counter += 1
         prev_time = time.time()
         detections = darknet.detect_image(network, class_names, darknet_image, thresh=args.thresh)
         detections_queue.put(detections)
-        for label, confidence, bbox in detections:
-            x,y,w,h = bbox
-            # csv_writer.writerow([x,y,frame_counter])
-            output_detections.append([x,y,frame_counter])
-        # tagpath()
-        # visualizepath.visualize(height, width)
         fps = int(1/(time.time() - prev_time))
         fps_queue.put(fps)
         print("FPS: {}".format(fps))
-        # darknet.print_detections(detections, args.ext_output)
-        # darknet.print_detections_into_csv(detections, file, frame_counter, args.ext_output)
+        darknet.print_detections(detections, args.ext_output)
         darknet.free_image(darknet_image)
-    output_detections = np.asarray(output_detections)
-    np.savetxt(f, output_detections, delimiter=",")
+    cap.release()
+
+
+file = "./results.csv"
+f = open(file,'w',newline='')
+def write_to_csv(frame_queue, detections_queue):
+    while cap.isOpened():
+        frame = frame_queue.get()
+        detections = detections_queue.get()
+        fps = fps_queue.get()
+        detections_adjusted = []
+        for label, confidence, bbox in detections:
+                bbox_adjusted = convert2original(frame, bbox)
+                x,y,w,h = bbox_adjusted
+                detections_adjusted.append([x,y,frame_queue.qsize()])
+        np.savetxt(f, detections_adjusted, delimiter=",")
     cap.release()
 
 
@@ -199,4 +201,5 @@ if __name__ == '__main__':
     video_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     Thread(target=video_capture, args=(frame_queue, darknet_image_queue)).start()
     Thread(target=inference, args=(darknet_image_queue, detections_queue, fps_queue)).start()
-    Thread(target=drawing, args=(frame_queue, detections_queue, fps_queue)).start()
+    Thread(target=write_to_csv, args=(frame_queue, detections_queue)).start()
+    # Thread(target=drawing, args=(frame_queue, detections_queue, fps_queue)).start()
