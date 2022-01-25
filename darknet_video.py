@@ -7,6 +7,7 @@ import time
 import darknet
 import tagpath
 import visualizepath
+import numpy as np
 import argparse
 from threading import Thread, enumerate
 from queue import Queue
@@ -123,28 +124,32 @@ def video_capture(frame_queue, darknet_image_queue):
     cap.release()
 
 file = "./result.csv"
+f = open(file, 'w', newline='')
+# csv_writer = csv.writer(f)
 def inference(darknet_image_queue, detections_queue, fps_queue):
     frame_counter = 0
+    output_detections = []
     while cap.isOpened():
         darknet_image = darknet_image_queue.get()
-        height, width, channels = darknet_image.size
+        # height, width, channels = darknet_image.size
         frame_counter += 1
         prev_time = time.time()
         detections = darknet.detect_image(network, class_names, darknet_image, thresh=args.thresh)
         detections_queue.put(detections)
-        f = open(file, 'w', newline='')
-        csv_writer = csv.writer(f)
         for label, confidence, bbox in detections:
             x,y,w,h = bbox
-            csv_writer.writerow([x,y,frame_counter])
-        tagpath()
-        visualizepath.visualize(height, width)
+            # csv_writer.writerow([x,y,frame_counter])
+            output_detections.append([x,y,frame_counter])
+        # tagpath()
+        # visualizepath.visualize(height, width)
         fps = int(1/(time.time() - prev_time))
         fps_queue.put(fps)
         print("FPS: {}".format(fps))
         # darknet.print_detections(detections, args.ext_output)
         # darknet.print_detections_into_csv(detections, file, frame_counter, args.ext_output)
         darknet.free_image(darknet_image)
+    output_detections = np.asarray(output_detections)
+    np.savetxt(f, output_detections, delimiter=",")
     cap.release()
 
 
