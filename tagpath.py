@@ -129,23 +129,42 @@ def pathTag(arr):
     # print(arr)
     return arr
 
+def parallel_tagpath(curr_frame, next_frame):
+    arr = [curr_frame, next_frame]
+    for j in range(len(curr_frame)):
+        for k in range(len(next_frame)):
+            curr_point = curr_frame[j]
+            next_point = next_frame[k]
+            # make distance as sub
+            d = distance(curr_point, next_point)
+            if d < dist_threshold:
+                # append next point with id of curr point if curr point has path id
+                # if not give currpoint and next point new path id
+                if len(next_frame[k]) == 2:
+                    if len(curr_frame[j]) > 2:
+                        next_frame[k].append(curr_frame[j][2])
+                    else:    
+                        hpathid += 1
+                        if len(arr[i][j]) == 2:
+                            arr[i][j].append(hpathid)
+                        arr[i+1][k].append(hpathid)
 
-def makeVisualizationData(arr, x_video_dimension, y_video_dimension):
-    global hpathid
+def makeVisualizationData(arr, file, hpathid):
     newdata = []
     for f, frame in enumerate(arr):
         
         for p in frame:
             # x = x_video_dimension - p[0]
             x = p[0]
-            y = y_video_dimension - p[1]
-            if len(p) > 2:
-                newdata.append((x,y, f, p[2]))
+            y = p[1]
+            f = p[2]
+            if len(p) > 3:
+                newdata.append((x, y, f, p[3]))
             else:
                 hpathid += 1
-                newdata.append((x,y, f, hpathid))
+                newdata.append((x, y, f, hpathid))
 
-    np.savetxt('pathdata.csv', newdata, delimiter=",")
+    np.savetxt(file, newdata, delimiter=",")
 
 if __name__ == "__main__":
     file_path = "/Users/adammalyshev/Documents/projects/ATT/model_output.csv"

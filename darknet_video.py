@@ -141,7 +141,7 @@ def inference(darknet_image_queue, detections_queue, fps_queue):
 
 file = "./results.csv"
 f = open(file,'w',newline='')
-def write_to_csv(frame_queue, detections_queue):
+def write_to_csv(frame_queue, detections_queue, fps_queue):
     while cap.isOpened():
         frame = frame_queue.get()
         detections = detections_queue.get()
@@ -152,6 +152,66 @@ def write_to_csv(frame_queue, detections_queue):
                 x,y,w,h = bbox_adjusted
                 detections_adjusted.append([x,y,frame_queue.qsize()])
         np.savetxt(f, detections_adjusted, delimiter=",")
+    cap.release()
+
+
+def gen_visualize_data(frame_queue, detections_queue, fps_queue):
+    # cumulative_detections = []
+    arr = []
+    dist_threshold = 15 
+
+    highest_path_id = 0
+    while cap.isOpened():
+        frame = frame_queue.get()
+        fps = fps_queue.get()
+
+        # queue works on first in first out so curr is first
+           
+        next_frame_detections = detections_queue.get()
+        next_detections_adjusted = []
+
+        for label, confidence, bbox in next_frame_detections:
+            bbox_adjusted = convert2original(frame, bbox)
+            x,y,w,h = bbox_adjusted
+            next_detections_adjusted.append([x,y,frame_queue.qsize()])
+       
+        # index of last culmulative detection
+        i = len(arr) - 1
+
+        # add new frame to culmulative detections
+        arr.append(next_detections_adjusted)
+
+        if len(arr) != 0:
+            
+            # compare the input stream detection to latest in cumulative
+            for j in range(len(arr[i])):
+           
+                for k in range(len(next_detections_adjusted)):
+                    
+                    curr_point = arr[i][j]
+                    next_point = next_detections_adjusted[k]
+
+                    # make distance as sub
+                    d = tagpath.distance(curr_point, next_point)
+                    
+                    if d < dist_threshold:
+                        # append next point with id of curr point if curr point has path id
+                        # if not give currpoint and next point new path id
+                        if len(arr[i+1][k]) == 2:
+                            if len(arr[i][j]) > 2:
+                                arr[i+1][k].append(arr[i][j][3])
+                            else:    
+                                highest_path_id += 1
+                                if len(arr[i][j]) == 2:
+                                    arr[i][j].append(highest_path_id)
+                                arr[i+1][k].append(highest_path_id)
+        else:
+            # if len(arr) == 0
+            for pt in range(len(next_detections_adjusted)):
+                arr[i+1][pt].append(pt)
+                highest_path_id += 1
+
+        tagpath.makeVisualizationData(arr, f, highest_path_id)
     cap.release()
 
 
