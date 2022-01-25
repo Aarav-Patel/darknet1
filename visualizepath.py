@@ -5,8 +5,8 @@ import math
 import csv
 import time
 
-def visualize(x_vid_dim, y_vid_dim):
-    df = pd.read_csv("./pathdata.csv")
+def visualize(file_path):
+    df = pd.read_csv(file_path)
     df.columns = ["X", "Y", "T", "P"]
     l = len(df)
     paths = df["P"].squeeze()
@@ -22,7 +22,15 @@ def visualize(x_vid_dim, y_vid_dim):
     plt.show()
     time.sleep(0.01)
     plt.close()
+
+def drawline(point1, point2, image, colors):
+    import cv2
+    x1, y1, f, pathid = point1
+    x2, y2, f1, pathid1 = point2
+    cv2.line(image, (x1,y1), (x2,y2), colors[pathid], 5)
+    return image
+
 if __name__ == "__main__":
     x_video_dimension = 852
     y_video_dimension = 480
-    visualize(x_video_dimension, y_video_dimension)
+    visualize("./pathdata.csv")
