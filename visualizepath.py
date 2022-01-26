@@ -27,7 +27,8 @@ def drawline(point1, point2, image, colors):
     import cv2
     x1, y1, f, pathid = point1
     x2, y2, f1, pathid1 = point2
-    cv2.line(image, (x1,y1), (x2,y2), colors[pathid], 5)
+    # draws red line
+    cv2.line(image, (x1,y1), (x2,y2), (255,0,0), 5)
     return image
 
 if __name__ == "__main__":

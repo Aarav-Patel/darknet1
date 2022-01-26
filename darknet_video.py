@@ -167,10 +167,12 @@ def gen_visualize_data(frame_queue, detections_queue, fps_queue):
     num_detections = 0
     random.seed(3)  # deterministic bbox colors
     video = set_saved_video(cap, args.out_filename, (video_width, video_height))
-    # path_id = 0
+    
+    # starting image is just white
+    image = np.full((video_height, video_width,3),255, np.uint8)
     while cap.isOpened():
         frame = frame_queue.get()
-        image = frame
+        # image = frame
         frame_counter += 1
         fps = fps_queue.get()
 
@@ -188,54 +190,51 @@ def gen_visualize_data(frame_queue, detections_queue, fps_queue):
         # index of last culmulative detection
         i = len(arr) - 1
 
-        # add new frame to culmulative detections
-        arr.append(next_detections_adjusted)
-
-        if len(arr) != 0 and frame is not None:
+        if frame is not None:
+            if len(arr) == 0:
+                # add new frame to culmulative detections
+                arr.append(next_detections_adjusted)
+                # if len(arr) == 0
+                # i+1 == 0
+                for pt in range(len(next_detections_adjusted)):
+                    if len(arr[i+1][pt]) == 3:
+                        arr[i+1][pt].append(pt)
+                        highest_path_id += 1
+            else:
+                arr.append(next_detections_adjusted)
+                # compare the input stream detection to latest in cumulative
+                for j in range(len(arr[i])):
             
-            # compare the input stream detection to latest in cumulative
-            for j in range(len(arr[i])):
-           
-                for k in range(len(next_detections_adjusted)):
-                    
-                    curr_point = arr[i][j]
-                    next_point = next_detections_adjusted[k]
-
-                    # make distance as sub
-                    d = tagpath.distance(curr_point, next_point)
-
-                    if d < dist_threshold:
-                        # append next point with id of curr point if curr point has path id
-                        # if not give currpoint and next point new path id
-
+                    for k in range(len(next_detections_adjusted)):
                         
-                        if len(arr[i+1][k]) == 3:
-                            if len(arr[i][j]) > 3:
-                                arr[i+1][k].append(arr[i][j][3])
-                                # path_id = arr[i][j][3]
-                            else:    
-                                highest_path_id += 1
-                                if len(arr[i][j]) == 3:
-                                    arr[i][j].append(highest_path_id)
-                                arr[i+1][k].append(highest_path_id)
-                                # path_id = highest_path_id
-                                
-                        image = visualizepath.drawline(arr[i][j], arr[i+1][k], frame, class_colors)
-            if not args.dont_show:
-                cv2.imshow('Inference', image)
-            if args.out_filename is not None:
-                video.write(image)
-            if cv2.waitKey(fps) == 27:
-                break
-        else:
-            # if len(arr) == 0
-            for pt in range(len(next_detections_adjusted)):
-                arr[i+1][pt].append(pt)
-                highest_path_id += 1
-        
+                        curr_point = arr[i][j]
+                        next_point = next_detections_adjusted[k]
 
+                        # make distance as sub
+                        d = tagpath.distance(curr_point, next_point)
+
+                        if d < dist_threshold:
+                            # append next point with id of curr point if curr point has path id
+                            # if not give currpoint and next point new path id
+
+                            
+                            if len(arr[i+1][k]) == 3:
+                                if len(arr[i][j]) > 3:
+                                    arr[i+1][k].append(arr[i][j][3])
+                                else:    
+                                    highest_path_id += 1
+                                    if len(arr[i][j]) == 3:
+                                        arr[i][j].append(highest_path_id)
+                                    arr[i+1][k].append(highest_path_id)
+                            image = visualizepath.drawline(arr[i][j], arr[i+1][k], image, class_colors)
+                            
+                if not args.dont_show:
+                    cv2.imshow('Inference', image)
+                if args.out_filename is not None:
+                    video.write(image)
+                if cv2.waitKey(fps) == 27:
+                    break
     tagpath.makeVisualizationData(arr, f, highest_path_id)
-    # print(arr)
     cap.release()
     video.release()
     cv2.destroyAllWindows()
